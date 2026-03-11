@@ -1,4 +1,4 @@
-﻿"""
+"""
 Modernization Engine - Streamlit Web UI
 ========================================
 Run with:   streamlit run app.py
@@ -482,7 +482,7 @@ with tab_modernize:
 # TAB 4: Batch Modernize
 # ===========================================================================
 with tab_batch:
-    st.header("Step 4 - Batch Modernize All Entry Points")
+    st.header("Step 4 - Batch Modernize")
 
     optimizer_b: Optional[ContextOptimizer] = st.session_state["optimizer"]
 
@@ -491,12 +491,33 @@ with tab_batch:
     else:
         graph_b: DependencyGraph = st.session_state["graph"]
         entry_pts = graph_b.get_entry_points()
+        all_unit_keys = list(graph_b.get_all_units().keys())
 
-        st.info(
-            f"Found **{len(entry_pts)}** entry point(s): "
-            + ", ".join(f"`{e}`" for e in entry_pts),
-            icon="\U0001f3af",
+        # --- Mode toggle ---------------------------------------------------
+        all_units_mode = st.toggle(
+            "\U0001f4e6 Modernize All Units (not just entry points)",
+            value=False,
+            help=(
+                "When ON, every function and paragraph in the dependency graph "
+                "is modernized (Full Project Mode). "
+                "When OFF, only the detected entry points are modernized."
+            ),
         )
+
+        if all_units_mode:
+            batch_targets = all_unit_keys
+            st.info(
+                f"**Full Project Mode** — {len(batch_targets)} unit(s) will be modernized. "
+                "Each unit's context is independently optimized via the ContextOptimizer.",
+                icon="\U0001f4e6",
+            )
+        else:
+            batch_targets = entry_pts
+            st.info(
+                f"Found **{len(entry_pts)}** entry point(s): "
+                + (", ".join(f"`{e}`" for e in entry_pts) if entry_pts else "_none_"),
+                icon="\U0001f3af",
+            )
 
         col_bl, col_br = st.columns(2)
         batch_lang = col_bl.radio(
@@ -507,11 +528,12 @@ with tab_batch:
             key="batch_lang",
         )
 
+        mode_label = "All Units" if all_units_mode else "Entry Points"
         batch_btn = col_br.button(
-            f"\u26a1 Modernize All Entry Points to {batch_lang.upper()}",
+            f"\u26a1 Modernize {mode_label} to {batch_lang.upper()}",
             type="primary",
             key="batch_btn",
-            disabled=not entry_pts,
+            disabled=not batch_targets,
         )
 
         if batch_btn:
@@ -520,10 +542,10 @@ with tab_batch:
             llm_b = GroqClient(api_key=api_key, model=model_choice)
             modernizer_b = Modernizer(groq_client=llm_b)
 
-            for i, ep in enumerate(entry_pts):
+            for i, ep in enumerate(batch_targets):
                 progress_b.progress(
-                    int((i / len(entry_pts)) * 100),
-                    text=f"Modernizing {ep} ({i+1}/{len(entry_pts)})...",
+                    int((i / len(batch_targets)) * 100),
+                    text=f"Modernizing {ep} ({i+1}/{len(batch_targets)})...",
                 )
                 ctx_b = optimizer_b.optimize(ep)
                 if ctx_b:

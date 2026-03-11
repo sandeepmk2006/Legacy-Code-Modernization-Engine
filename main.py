@@ -9,6 +9,9 @@ Usage examples:
   # Modernize all entry points to Go
   python main.py modernize --path sample_legacy/ --to go --all-entry-points
 
+  # Full project mode: modernize every function/paragraph to Python
+  python main.py modernize --path sample_legacy/ --to python --all-units
+
   # Generate documentation for a COBOL paragraph
   python main.py modernize --path sample_legacy/BILLING.cbl --target CALC-BILLING --to documentation
 
@@ -93,6 +96,8 @@ def cli() -> None:
               help="Target output language.")
 @click.option("--all-entry-points", is_flag=True, default=False,
               help="Modernize all detected entry points.")
+@click.option("--all-units", is_flag=True, default=False,
+              help="Modernize every function/paragraph in the repository (full project mode).")
 @click.option("--max-tokens", default=config.MAX_CONTEXT_TOKENS, type=int,
               help="Token budget for context window.")
 @click.option("--depth",    default=config.MAX_DEPENDENCY_DEPTH, type=int,
@@ -104,6 +109,7 @@ def modernize(
     target: Optional[str],
     to: str,
     all_entry_points: bool,
+    all_units: bool,
     max_tokens: int,
     depth: int,
     api_key: str,
@@ -115,9 +121,10 @@ def modernize(
         console.print(f"[red]No supported files found in: {path}[/red]")
         sys.exit(1)
 
+    mode_label = "ALL UNITS" if all_units else ("ALL ENTRY POINTS" if all_entry_points else to.upper())
     console.print(
         Panel(f"[bold cyan]Modernization Engine[/bold cyan]\n"
-              f"Files: {len(files)}  |  Target: {to.upper()}  |  "
+              f"Files: {len(files)}  |  Mode: {mode_label}  |  Target lang: {to.upper()}  |  "
               f"Depth: {depth}  |  Budget: {max_tokens} tokens")
     )
 
@@ -127,7 +134,13 @@ def modernize(
 
     # Determine what to modernize
     targets: List[str] = []
-    if all_entry_points:
+    if all_units:
+        targets = list(graph.get_all_units().keys())
+        if not targets:
+            console.print("[yellow]No code units found in the parsed files.[/yellow]")
+            sys.exit(1)
+        console.print(f"[cyan]Full project mode: {len(targets)} units queued.[/cyan]")
+    elif all_entry_points:
         targets = graph.get_entry_points()
         if not targets:
             console.print("[yellow]No entry points found. Use --target to specify.[/yellow]")
@@ -135,7 +148,7 @@ def modernize(
     elif target:
         targets = [target]
     else:
-        console.print("[red]Specify --target <name> or --all-entry-points.[/red]")
+        console.print("[red]Specify --target <name>, --all-entry-points, or --all-units.[/red]")
         sys.exit(1)
 
     llm = GroqClient(api_key=api_key)
