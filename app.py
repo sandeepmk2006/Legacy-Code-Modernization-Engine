@@ -105,6 +105,17 @@ def _init_state() -> None:
 _init_state()
 
 
+def _resolve_backend_groq_api_key() -> str:
+    """Return server-side Groq key from Streamlit secrets or environment config."""
+    secret_key = ""
+    try:
+        secret_key = st.secrets.get("GROQ_API_KEY", "")
+    except Exception:
+        secret_key = ""
+
+    return (secret_key or config.GROQ_API_KEY or "").strip()
+
+
 # ---------------------------------------------------------------------------
 # Sidebar - Configuration
 # ---------------------------------------------------------------------------
@@ -114,12 +125,18 @@ with st.sidebar:
 
     st.divider()
     st.subheader("API Configuration")
-    api_key = st.text_input(
-        "Groq API Key",
-        value=config.GROQ_API_KEY,
-        type="password",
-        help="Your Groq API key (gsk_...)",
-    )
+    backend_api_key = _resolve_backend_groq_api_key()
+    if backend_api_key:
+        api_key = backend_api_key
+        st.success("Using backend Groq API key.")
+    else:
+        st.warning("No backend Groq API key found. Enter one to continue.")
+        api_key = st.text_input(
+            "Groq API Key",
+            value="",
+            type="password",
+            help="Set GROQ_API_KEY on the server to avoid entering this each time.",
+        ).strip()
 
     model_choice = st.selectbox(
         "Model",
@@ -484,6 +501,7 @@ with tab_modernize:
                     f"Modernize to {target_lang.upper()}",
                     type="primary",
                     key="modernize_btn",
+                    disabled=not api_key,
                 )
 
                 if modernize_btn:
@@ -572,7 +590,7 @@ with tab_batch:
             f"Modernize {mode_label} to {batch_lang.upper()}",
             type="primary",
             key="batch_btn",
-            disabled=not batch_targets,
+            disabled=(not batch_targets) or (not api_key),
         )
 
         if batch_btn:
