@@ -24,7 +24,7 @@ import matplotlib.patches as mpatches
 # ---------------------------------------------------------------------------
 st.set_page_config(
     page_title="Modernization Engine",
-    page_icon="\u2699\ufe0f",
+    page_icon="M",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -66,11 +66,11 @@ _init_state()
 # Sidebar - Configuration
 # ---------------------------------------------------------------------------
 with st.sidebar:
-    st.title("\u2699\ufe0f Modernization Engine")
+    st.title("Modernization Engine")
     st.caption("Legacy \u2192 Modern Code via Context-Optimized LLM")
 
     st.divider()
-    st.subheader("\U0001f511 API Configuration")
+    st.subheader("API Configuration")
     api_key = st.text_input(
         "Groq API Key",
         value=config.GROQ_API_KEY,
@@ -85,7 +85,7 @@ with st.sidebar:
     )
 
     st.divider()
-    st.subheader("\U0001f3af Output Language")
+    st.subheader("Output Language")
     target_lang = st.radio(
         "Modernize to:",
         options=["python", "go", "documentation"],
@@ -94,7 +94,7 @@ with st.sidebar:
     )
 
     st.divider()
-    st.subheader("\U0001f9e0 Context Settings")
+    st.subheader("Context Settings")
     max_tokens = st.slider(
         "Max Context Tokens",
         min_value=1_000,
@@ -116,10 +116,10 @@ with st.sidebar:
 # Main content area - Tabs
 # ---------------------------------------------------------------------------
 tab_upload, tab_graph, tab_modernize, tab_batch = st.tabs([
-    "\U0001f4c1 Upload & Parse",
-    "\U0001f578\ufe0f Dependency Graph",
-    "\U0001f680 Modernize",
-    "\u26a1 Batch Modernize",
+    "Upload & Parse",
+    "Dependency Graph",
+    "Modernize",
+    "Batch Modernize",
 ])
 
 
@@ -131,7 +131,6 @@ with tab_upload:
     st.info(
         "Upload **.java** or **.cbl / .cob** files from your legacy repository. "
         "You can select multiple files at once.",
-        icon="\u2139\ufe0f",
     )
 
     uploaded_files = st.file_uploader(
@@ -141,7 +140,7 @@ with tab_upload:
     )
 
     col1, col2 = st.columns([1, 4])
-    parse_btn = col1.button("\U0001f50d Parse Files", type="primary", disabled=not uploaded_files)
+    parse_btn = col1.button("Parse Files", type="primary", disabled=not uploaded_files)
 
     if parse_btn and uploaded_files:
         java_parser = JavaParser()
@@ -193,7 +192,6 @@ with tab_upload:
             f"Parsed **{len(parse_results)}** file(s) - "
             f"found **{graph.node_count()}** code units, "
             f"**{graph.edge_count()}** call edges.",
-            icon="\u2705",
         )
 
         if errors_found:
@@ -207,7 +205,7 @@ with tab_upload:
         st.subheader("Parsed Files")
 
         for fname, result in st.session_state["parse_results"].items():
-            with st.expander(f"\U0001f4c4 {fname}  ({result.language.upper()} - {len(result.units)} units)"):
+            with st.expander(f"{fname}  ({result.language.upper()} - {len(result.units)} units)"):
                 rows = []
                 for uname, unit in result.units.items():
                     rows.append({
@@ -224,7 +222,7 @@ with tab_upload:
         if st.session_state["dead_report"]:
             dead = st.session_state["dead_report"]["dead"]
             st.divider()
-            st.subheader(f"\U0001f9df Dead Code Detection - {len(dead)} unreachable unit(s)")
+            st.subheader(f"Dead Code Detection - {len(dead)} unreachable unit(s)")
             if dead:
                 st.write(
                     "These units have **zero callers** and are excluded from "
@@ -234,7 +232,7 @@ with tab_upload:
                 for i, name in enumerate(dead):
                     cols[i % 3].markdown(f"- `{name}`")
             else:
-                st.success("No dead code detected.", icon="\u2705")
+                st.success("No dead code detected.")
 
 
 # ===========================================================================
@@ -246,13 +244,13 @@ with tab_graph:
     graph: Optional[DependencyGraph] = st.session_state["graph"]
 
     if graph is None:
-        st.info("Parse files first in the **Upload & Parse** tab.", icon="\u2139\ufe0f")
+        st.info("Parse files first in the **Upload & Parse** tab.")
     else:
         st.caption(graph.summary())
         adj = graph.to_dict()
 
         # Visual Graph
-        st.subheader("\U0001f4ca Visual Call Graph")
+        st.subheader("Visual Call Graph")
         try:
             import networkx as nx
 
@@ -314,7 +312,7 @@ with tab_graph:
             st.image(buf, width='stretch')
             plt.close(fig)
 
-            st.download_button("\u2b07\ufe0f Download graph image", buf.getvalue(),
+            st.download_button("Download graph image", buf.getvalue(),
                                "call_graph.png", "image/png")
         except Exception as exc:
             st.warning(f"Visual graph unavailable: {exc}. Showing table instead.")
@@ -358,7 +356,7 @@ with tab_graph:
                     st.write("No transitive dependencies.")
 
         st.divider()
-        with st.expander("\U0001f4cb Export as Graphviz DOT"):
+        with st.expander("Export as Graphviz DOT"):
             dot_lines = ["digraph CallGraph {", '  rankdir=LR;',
                          '  node [style=filled fontname="Helvetica"];']
             dead_set2 = set(st.session_state["dead_report"]["dead"]) if st.session_state["dead_report"] else set()
@@ -379,7 +377,7 @@ with tab_graph:
             dot_lines.append("}")
             dot_text = "\n".join(dot_lines)
             st.code(dot_text, language="dot")
-            st.download_button("\u2b07\ufe0f Download .dot file", dot_text, "call_graph.dot", "text/plain")
+            st.download_button("Download .dot file", dot_text, "call_graph.dot", "text/plain")
 
 
 # ===========================================================================
@@ -391,7 +389,7 @@ with tab_modernize:
     optimizer: Optional[ContextOptimizer] = st.session_state["optimizer"]
 
     if optimizer is None:
-        st.info("Parse files first in the **Upload & Parse** tab.", icon="\u2139\ufe0f")
+        st.info("Parse files first in the **Upload & Parse** tab.")
     else:
         graph2: DependencyGraph = st.session_state["graph"]
         all_units_list = sorted(graph2.get_all_units().keys())
@@ -416,7 +414,7 @@ with tab_modernize:
                 col3.metric("Dead Code Excluded", summary["excluded_dead_code"])
                 col4.metric("Budget-trimmed", summary["excluded_budget_limit"])
 
-                with st.expander("\U0001f50d Preview context block sent to LLM", expanded=False):
+                with st.expander("Preview context block sent to LLM", expanded=False):
                     cleaner = CodeCleaner()
                     unit = ctx.target_unit
                     cleaned = cleaner.clean(unit.code, unit.language)
@@ -433,14 +431,14 @@ with tab_modernize:
                 col_orig, col_modern = st.columns(2)
 
                 with col_orig:
-                    st.subheader("\U0001f4dc Original Code")
+                    st.subheader("Original Code")
                     st.code(
                         ctx.target_unit.code,
                         language=ctx.target_unit.language if ctx.target_unit.language != "cobol" else "text",
                     )
 
                 modernize_btn = st.button(
-                    f"\U0001f680 Modernize to {target_lang.upper()}",
+                    f"Modernize to {target_lang.upper()}",
                     type="primary",
                     key="modernize_btn",
                 )
@@ -461,7 +459,7 @@ with tab_modernize:
                     if result.success:
                         with col_modern:
                             lang_map = {"python": "python", "go": "go", "documentation": "markdown"}
-                            st.subheader(f"\u2728 Modernized ({target_lang.upper()})")
+                            st.subheader(f"Modernized ({target_lang.upper()})")
                             st.code(
                                 result.modernized_code,
                                 language=lang_map.get(target_lang, "text"),
@@ -469,7 +467,7 @@ with tab_modernize:
 
                         ext = result.file_extension()
                         st.download_button(
-                            f"\u2b07\ufe0f Download modernized file ({ext})",
+                            f"Download modernized file ({ext})",
                             data=result.modernized_code,
                             file_name=f"{result.target_name.replace('.', '_')}{ext}",
                             mime="text/plain",
@@ -487,7 +485,7 @@ with tab_batch:
     optimizer_b: Optional[ContextOptimizer] = st.session_state["optimizer"]
 
     if optimizer_b is None:
-        st.info("Parse files first in the **Upload & Parse** tab.", icon="\u2139\ufe0f")
+        st.info("Parse files first in the **Upload & Parse** tab.")
     else:
         graph_b: DependencyGraph = st.session_state["graph"]
         entry_pts = graph_b.get_entry_points()
@@ -495,7 +493,7 @@ with tab_batch:
 
         # --- Mode toggle ---------------------------------------------------
         all_units_mode = st.toggle(
-            "\U0001f4e6 Modernize All Units (not just entry points)",
+            "Modernize All Units (not just entry points)",
             value=False,
             help=(
                 "When ON, every function and paragraph in the dependency graph "
@@ -509,14 +507,12 @@ with tab_batch:
             st.info(
                 f"**Full Project Mode** — {len(batch_targets)} unit(s) will be modernized. "
                 "Each unit's context is independently optimized via the ContextOptimizer.",
-                icon="\U0001f4e6",
             )
         else:
             batch_targets = entry_pts
             st.info(
                 f"Found **{len(entry_pts)}** entry point(s): "
                 + (", ".join(f"`{e}`" for e in entry_pts) if entry_pts else "_none_"),
-                icon="\U0001f3af",
             )
 
         col_bl, col_br = st.columns(2)
@@ -530,7 +526,7 @@ with tab_batch:
 
         mode_label = "All Units" if all_units_mode else "Entry Points"
         batch_btn = col_br.button(
-            f"\u26a1 Modernize {mode_label} to {batch_lang.upper()}",
+            f"Modernize {mode_label} to {batch_lang.upper()}",
             type="primary",
             key="batch_btn",
             disabled=not batch_targets,
@@ -572,12 +568,12 @@ with tab_batch:
             failed = [r for r in batch_results if not r.success]
 
             col_s, col_f = st.columns(2)
-            col_s.metric("\u2705 Successful", len(successful))
-            col_f.metric("\u274c Failed", len(failed))
+            col_s.metric("Successful", len(successful))
+            col_f.metric("Failed", len(failed))
 
             for res in batch_results:
                 ext_b = res.file_extension()
-                status = "\u2705" if res.success else "\u274c"
+                status = "SUCCESS" if res.success else "FAILED"
                 with st.expander(f"{status} {res.target_name}{ext_b}"):
                     if res.success:
                         st.code(
@@ -587,7 +583,7 @@ with tab_batch:
                         if res.output_file:
                             st.caption(f"Saved to: `{res.output_file}`")
                         st.download_button(
-                            f"\u2b07\ufe0f Download {ext_b}",
+                            f"Download {ext_b}",
                             data=res.modernized_code,
                             file_name=f"{res.target_name.replace('.','_')}{ext_b}",
                             mime="text/plain",
@@ -605,7 +601,7 @@ with tab_batch:
                         zf.writestr(fname, res.modernized_code)
                 zip_buf.seek(0)
                 st.download_button(
-                    "\u2b07\ufe0f Download all as ZIP",
+                    "Download all as ZIP",
                     data=zip_buf.getvalue(),
                     file_name="modernized_batch.zip",
                     mime="application/zip",
