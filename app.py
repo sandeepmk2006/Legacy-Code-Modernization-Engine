@@ -5,11 +5,13 @@ Run with:   streamlit run app.py
 """
 from __future__ import annotations
 
+import asyncio
 import os
 import io
 import time
 import tempfile
 import zipfile
+import logging
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -18,10 +20,51 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
+from tornado.iostream import StreamClosedError
+from tornado.websocket import WebSocketClosedError
+
+
+def _install_ws_disconnect_exception_filter() -> None:
+    """
+    Suppress noisy websocket disconnect exceptions that happen when a browser
+    tab closes or refreshes during a Streamlit update.
+
+    This keeps expected disconnect race conditions from polluting logs while
+    still surfacing all unrelated asyncio exceptions.
+    """
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        try:
+            loop = asyncio.get_event_loop_policy().get_event_loop()
+        except Exception:
+            return
+
+    if loop.is_closed():
+        return
+
+    default_handler = loop.get_exception_handler()
+
+    def _handler(current_loop: asyncio.AbstractEventLoop, context: dict) -> None:
+        exc = context.get("exception")
+        if isinstance(exc, (WebSocketClosedError, StreamClosedError)):
+            logging.getLogger("streamlit.runtime").debug(
+                "Ignored expected websocket disconnect exception: %s", exc
+            )
+            return
+
+        if default_handler is not None:
+            default_handler(current_loop, context)
+        else:
+            current_loop.default_exception_handler(context)
+
+    loop.set_exception_handler(_handler)
 
 # ---------------------------------------------------------------------------
 # Page config - must be first Streamlit call
 # ---------------------------------------------------------------------------
+_install_ws_disconnect_exception_filter()
+
 st.set_page_config(
     page_title="Modernization Engine",
     page_icon="M",
