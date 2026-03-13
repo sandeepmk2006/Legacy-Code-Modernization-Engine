@@ -614,7 +614,7 @@ with tab_batch:
             col_s.metric("Successful", len(successful))
             col_f.metric("Failed", len(failed))
 
-            for res in batch_results:
+            for i, res in enumerate(batch_results):
                 ext_b = res.file_extension()
                 status = "SUCCESS" if res.success else "FAILED"
                 with st.expander(f"{status} {res.target_name}{ext_b}"):
@@ -630,7 +630,7 @@ with tab_batch:
                             data=res.modernized_code,
                             file_name=f"{res.target_name.replace('.','_')}{ext_b}",
                             mime="text/plain",
-                            key=f"dl_{res.target_name}",
+                            key=f"dl_{i}_{res.target_name}",
                         )
                     else:
                         st.error(f"Error: {res.error}")
