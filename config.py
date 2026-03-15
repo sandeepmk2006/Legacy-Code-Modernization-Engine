@@ -6,14 +6,28 @@ Set GROQ_API_KEY in a .env file or as an environment variable.
 import os
 from pathlib import Path
 
-# Load .env file if present (without requiring python-dotenv)
-_env_file = Path(__file__).parent / ".env"
-if _env_file.exists():
-    for _line in _env_file.read_text().splitlines():
-        _line = _line.strip()
-        if _line and not _line.startswith("#") and "=" in _line:
-            _k, _, _v = _line.partition("=")
-            os.environ.setdefault(_k.strip(), _v.strip())
+
+def _load_env_file(env_file: Path) -> None:
+    """Load KEY=VALUE pairs from an env file without external deps."""
+    if not env_file.exists():
+        return
+
+    for raw_line in env_file.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+
+        key, _, value = line.partition("=")
+        key = key.strip()
+        value = value.strip().strip('"').strip("'")
+        if key:
+            os.environ.setdefault(key, value)
+
+
+# Load .env first; if absent, allow .env.example as a fallback for local runs.
+_project_root = Path(__file__).parent
+_load_env_file(_project_root / ".env")
+_load_env_file(_project_root / ".env.example")
 
 # ---------------------------------------------------------------------------
 # Groq API

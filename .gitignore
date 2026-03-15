@@ -15,7 +15,8 @@ venv/
 env/
 
 # Environment secrets (contains API keys - never commit)
-.env
+.env.example
+
 
 # Streamlit
 .streamlit/
